@@ -16,6 +16,22 @@ oAuth2Client.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
 
 async function sendMail(req, res) {
   try {
+    const accessToken = await oAuth2Client.getAccessToken();
+    const transport = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        ...CONSTANTS.auth,
+        accessToken: accessToken,
+      },
+    });
+
+    const mailOptions = {
+      ...CONSTANTS.mailoptions,
+      text: "This is a test",
+    };
+
+    const result = await transport.sendMail(mailOptions);
+    res.send(result);
   } catch (error) {
     console.log(error);
     res.send(error);
@@ -37,6 +53,11 @@ async function getUser(req, res) {
 
 async function getDrafts(req, res) {
   try {
+    const url = `https://gmail.googleapis.com/gmail/v1/users/${req.params.email}/drafts`;
+    const { token } = await oAuth2Client.getAccessToken();
+    const config = generateConfig(url, token);
+    const response = await axios(config);
+    res.json(response.data);
   } catch (error) {
     console.log(error);
     return error;
@@ -45,6 +66,14 @@ async function getDrafts(req, res) {
 
 async function readMail(req, res) {
   try {
+    const url = `https://gmail.googleapis.com/gmail/v1/users/${req.params.email}/messages/${req.params.messageId}`;
+    const { token } = await oAuth2Client.getAccessToken();
+    const config = generateConfig(url, token);
+    const response = await axios(config);
+
+    let data = await response.data;
+
+    res.json(data);
   } catch (error) {
     res.send(error);
   }
